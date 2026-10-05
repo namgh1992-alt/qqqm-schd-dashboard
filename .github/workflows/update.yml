@@ -1,0 +1,62 @@
+name: Update data & deploy
+
+on:
+  schedule:
+    - cron: "7 * * * *"        # 매시 7분 (UTC 기준, 1시간 간격)
+  workflow_dispatch:            # Actions 탭에서 수동 실행 버튼
+  push:
+    branches: [main]
+    paths-ignore: ["data.json"]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Update data.json
+        run: python scripts/update_data.py
+
+      - name: Commit data.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git diff --staged --quiet || (git commit -m "data: $(date -u +'%Y-%m-%d %H:%M') UTC" && git pull --rebase && git push)
+
+      - name: Prepare site
+        run: |
+          mkdir -p _site
+          cp index.html data.json .nojekyll _site/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
