@@ -373,7 +373,7 @@ p.small{font-size:12.5px;color:var(--muted);margin:8px 0 0;max-width:80ch}
       <div><span>남은 대기 현금</span><b id="dipLeftAmt"></b><small id="dipLeftSub"></small></div>
       <div><span>다음 매수 지점</span><b id="dipNext"></b><small id="dipNextSub"></small></div>
     </div>
-    <p class="small">하락률은 최근 1년 일봉 종가 중 최고치를 고점으로 잡아 계산합니다. 성장 ETF 환산 가격은 현재 ETF 가격과 지수의 비율을 그대로 적용한 근사값이고, 매수 수량은 소수점 거래 기준이며, 정수 주로 사려면 내림해서 보세요. 합계 줄의 하락률·지수·가격은 배분 비중으로 가중평균한 평균 매수 지점입니다.</p>
+    <p class="small">하락률은 최근 1년 일봉 종가 중 최고치를 고점으로 잡아 계산합니다. 성장 ETF 환산 가격은 현재 ETF 가격에 지수 변동률(2배 레버리지 ETF는 2배)을 적용한 근사값이며, 레버리지 ETF는 하락 경로에 따라 실제 가격이 더 낮을 수 있습니다. 매수 수량은 소수점 거래 기준이며, 정수 주로 사려면 내림해서 보세요. 합계 줄의 하락률·지수·가격은 배분 비중으로 가중평균한 평균 매수 지점입니다.</p>
     <div class="src">Source: Yahoo Finance(^NDX, <span class="gtk"></span>) 일봉 종가, <span id="dipAsOf"></span></div>
   </div>
 </section>
@@ -816,7 +816,8 @@ document.getElementById("dipReset").addEventListener("click",()=>{
   S.dip=JSON.parse(JSON.stringify(DIP_DEFAULT)); save(); buildDip(); renderDip();
 });
 function renderDip(){
-  const GT=S.rows[0].tk, cash=+S.cash||0, qpx=SNAP[GT], ratio=qpx/DD.cur;
+  const GT=S.rows[0].tk, LEV=GT==="QLD"?2:1, cash=+S.cash||0, qpx=SNAP[GT];
+  const etfPx = idx => qpx*Math.max(0.05, 1+LEV*(idx/DD.cur-1));
   const lv=S.dip.lv.map(v=>+v||0), w=S.dip.w.map(v=>+v||0), wsum=w.reduce((a,b)=>a+b,0);
   document.getElementById("ddPct").textContent="−"+(DD.dd*100).toFixed(1)+"%";
   document.getElementById("ddSub").innerHTML=`고점 ${nf2(DD.hi)} (${DD.hiDate}) → 현재 ${nf2(DD.cur)} (${DD.date})<br>고점 회복까지 ${signPct(DD.hi/DD.cur-1)}`;
@@ -824,7 +825,7 @@ function renderDip(){
   const trs=[...dipRows.querySelectorAll("tr")];
   let tAmt=0,tQty=0,nowAmt=0,nowN=0,wDd=0,next=null;
   lv.forEach((d,i)=>{
-    const idx=DD.hi*(1-d/100), px=idx*ratio, amt=cash*w[i]/100, qty=px>0?amt/px:0;
+    const idx=DD.hi*(1-d/100), px=etfPx(idx), amt=cash*w[i]/100, qty=px>0?amt/px:0;
     const hit=DD.dd*100>=d-1e-9, tr=trs[i];
     tAmt+=amt; tQty+=qty; wDd+=d*w[i];
     if(hit){ nowAmt+=amt; nowN++; } else if(!next || d<next.d) next={d,idx,px,amt,i};
@@ -839,7 +840,7 @@ function renderDip(){
   const avgD=wsum?wDd/wsum:0, avgIdx=DD.hi*(1-avgD/100);
   document.getElementById("dipAvgDd").textContent=wsum?"−"+avgD.toFixed(1)+"%":"—";
   document.getElementById("dipAvgIdx").textContent=wsum?nf0(avgIdx):"—";
-  document.getElementById("dipAvgPx").textContent=wsum?"$"+nf2(avgIdx*ratio):"—";
+  document.getElementById("dipAvgPx").textContent=wsum?"$"+nf2(etfPx(avgIdx)):"—";
   document.getElementById("dipWsum").textContent=wsum+"%";
   document.getElementById("dipAmt").textContent=money(tAmt);
   document.getElementById("dipQty").textContent=tQty.toFixed(2)+"주";
