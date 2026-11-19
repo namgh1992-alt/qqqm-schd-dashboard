@@ -161,6 +161,30 @@ footer p{margin:0 0 6px;max-width:110ch}
 .fig .readout b{font-weight:500}
 .mt{margin-top:26px}
 p.small{font-size:12.5px;color:var(--muted);margin:8px 0 0;max-width:80ch}
+/* drawdown buy plan */
+.dip{margin-top:30px}
+.dip h3{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;font-size:15px;font-weight:500;margin:0;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+.dd-head{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,2fr);gap:28px;align-items:center;margin:14px 0 6px}
+@media (max-width:760px){.dd-head{grid-template-columns:1fr;gap:10px}}
+.dd-num{display:flex;align-items:baseline;gap:8px;color:var(--down)}
+.dd-num b{font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.dd-num span{font-size:14px;color:var(--muted)}
+.dd-sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.dd-ruler svg{display:block;width:100%;height:auto;overflow:visible}
+.dip .rt td.l{text-align:left}
+.dip .rt tr.hit td{background:var(--blue-bg)}
+.dip .tag{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:2px;border:1px solid var(--hair);color:var(--muted)}
+.dip .tag.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.dip .ctrl{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;flex-wrap:wrap;margin:12px 0 4px;font-size:12.5px;color:var(--muted)}
+.dip .warnline{color:var(--warn);font-size:12.5px;margin-top:6px}
+.dip .now{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1.5px solid var(--ink);border-bottom:1px solid var(--rule);margin-top:14px}
+@media (max-width:760px){.dip .now{grid-template-columns:1fr}}
+.dip .now div{padding:10px 14px}
+.dip .now div+div{border-left:1px solid var(--hair)}
+@media (max-width:760px){.dip .now div+div{border-left:0;border-top:1px solid var(--hair)}}
+.dip .now span{display:block;font-size:12px;color:var(--muted)}
+.dip .now b{display:block;font-size:20px;font-weight:700;color:var(--navy);line-height:1.35}
+.dip .now small{font-size:11.5px;color:var(--muted)}
 :root{--ma1:#4a4a4a;--ma2:#7fa7e8;--band-o:#eef3fc;--band-i:#d5e6ff}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ma1:#c9cdd3;--ma2:#5f8fd8;--band-o:#1c2738;--band-i:#253a5c}}
 :root[data-theme="dark"]{--ma1:#c9cdd3;--ma2:#5f8fd8;--band-o:#1c2738;--band-i:#253a5c}
@@ -294,6 +318,31 @@ p.small{font-size:12.5px;color:var(--muted);margin:8px 0 0;max-width:80ch}
       <div class="src">Source: worldperatio.com, History of Market</div>
     </figure>
   </div>
+
+  <div class="dip" aria-labelledby="tDip">
+    <h3 id="tDip">고점 대비 하락률과 분할 매수 계획 <span class="seg" role="group" aria-label="비중 프리셋" data-dipw><button type="button" data-w="10,15,20,25,30">가중</button><button type="button" data-w="5,10,20,30,35">강한 가중</button><button type="button" data-w="20,20,20,20,20">균등</button></span></h3>
+    <div class="dd-head">
+      <div>
+        <div class="dd-num"><b id="ddPct"></b><span>52주 고점 대비</span></div>
+        <div class="dd-sub" id="ddSub"></div>
+      </div>
+      <div class="dd-ruler" id="ddRuler"></div>
+    </div>
+    <div class="ctrl"><span>입력 칸에서 하락률과 배분 비중을 바꿀 수 있습니다. 기준 현금은 위 <b>현금 보유</b> 값입니다.</span><button class="linkbtn" type="button" id="dipReset">기본값으로</button></div>
+    <div class="tw"><table class="rt" aria-label="하락 단계별 현금 분할 매수">
+      <thead><tr><th class="c">단계</th><th>고점 대비<small>하락률</small></th><th>Nasdaq 100<small>목표 지수</small></th><th>QQQM<small>환산 가격</small></th><th>배분 비중<small>현금 대비</small></th><th>투입 금액</th><th>매수 수량<small>QQQM</small></th><th class="c">상태</th></tr></thead>
+      <tbody id="dipRows"></tbody>
+      <tfoot><tr><td class="c">합계</td><td id="dipAvgDd"></td><td id="dipAvgIdx"></td><td id="dipAvgPx"></td><td id="dipWsum"></td><td id="dipAmt"></td><td id="dipQty"></td><td></td></tr></tfoot>
+    </table></div>
+    <div class="warnline" id="dipWarn" hidden></div>
+    <div class="now">
+      <div><span>지금 집행 대상 (도달한 단계)</span><b id="dipNowAmt"></b><small id="dipNowSub"></small></div>
+      <div><span>남은 대기 현금</span><b id="dipLeftAmt"></b><small id="dipLeftSub"></small></div>
+      <div><span>다음 매수 지점</span><b id="dipNext"></b><small id="dipNextSub"></small></div>
+    </div>
+    <p class="small">하락률은 최근 1년 일봉 종가 중 최고치를 고점으로 잡아 계산합니다. QQQM 환산 가격은 현재 QQQM과 지수의 비율을 그대로 적용한 근사값이고, 매수 수량은 소수점 거래 기준이며, 정수 주로 사려면 내림해서 보세요. 합계 줄의 하락률·지수·가격은 배분 비중으로 가중평균한 평균 매수 지점입니다.</p>
+    <div class="src">Source: Yahoo Finance(^NDX, QQQM) 일봉 종가, <span id="dipAsOf"></span></div>
+  </div>
 </section>
 
 <!-- SCHD -->
@@ -355,12 +404,14 @@ const DIV = D.div;
 const NEXT = D.next;
 
 /* ---------- state ---------- */
-const DEFAULT = { cur:"KRW", extra:0, cash:1200, fxManual:null, divOverride:{},
+const DIP_DEFAULT = { lv:[10,15,20,25,30], w:[10,15,20,25,30] };
+const DEFAULT = { cur:"KRW", extra:0, cash:1200, fxManual:null, divOverride:{}, dip:JSON.parse(JSON.stringify(DIP_DEFAULT)),
   rows:[ {name:"Invesco 나스닥100 ETF", tk:"QQQM", avg:240.00, qty:40, target:30},
          {name:"Schwab 미국배당 ETF", tk:"SCHD", avg:27.80, qty:600, target:70} ] };
 let S; try{ S = JSON.parse(localStorage.getItem("rebal-qqqm-v1")) || null; }catch(e){ S=null; }
 if(!S || !S.rows) S = JSON.parse(JSON.stringify(DEFAULT));
 S.divOverride = S.divOverride || {};
+if(!S.dip || !Array.isArray(S.dip.lv) || S.dip.lv.length!==5) S.dip = JSON.parse(JSON.stringify(DIP_DEFAULT));
 S.rows.forEach(r=>{ r.px = SNAP[r.tk]; });
 let FX = { rate: S.fxManual ?? SNAP.fx, mode: S.fxManual!=null ? "manual" : "snapshot", at:null, src:"" };
 function save(){ try{ const c=JSON.parse(JSON.stringify(S)); c.rows.forEach(r=>delete r.px); localStorage.setItem("rebal-qqqm-v1", JSON.stringify(c)); }catch(e){} }
@@ -436,6 +487,7 @@ function calc(){
   document.getElementById("slider").value=tq; document.getElementById("capQ").textContent=tq+"%"; document.getElementById("capS").textContent=tsd+"%";
   LAST={vals,total,adjs,cost};
   renderDiv();
+  if(window.__ready) renderDip();
 }
 tbody.addEventListener("input",e=>{ const t=e.target; if(!t.dataset.k) return; S.rows[+t.dataset.i][t.dataset.k]=t.value; save(); calc(); });
 document.getElementById("slider").addEventListener("input",e=>{
@@ -699,6 +751,97 @@ function gauge(el,v){
 
 /* ---------- research renders ---------- */
 let perMode="all";
+
+/* ---------- drawdown buy plan ---------- */
+const DD = (()=>{
+  let hi=NDX[0]; NDX.forEach(r=>{ if(r[4]>hi[4]) hi=r; });
+  const last=NDX[NDX.length-1];
+  return { hiDate:hi[0], hi:hi[4], cur:last[4], date:last[0], dd:1-last[4]/hi[4] };
+})();
+const dipRows=document.getElementById("dipRows");
+function buildDip(){
+  dipRows.innerHTML = S.dip.lv.map((v,i)=>`<tr data-r="${i}">
+    <td class="c k">${i+1}</td>
+    <td><label class="fld w-sm pct"><span class="u">−</span><input data-dk="lv" data-i="${i}" type="number" step="1" min="0" max="90" inputmode="decimal" value="${v}" aria-label="${i+1}단계 하락률"><span class="u">%</span></label></td>
+    <td data-c="idx"></td><td data-c="px"></td>
+    <td><label class="fld w-sm pct"><input data-dk="w" data-i="${i}" type="number" step="5" min="0" inputmode="decimal" value="${S.dip.w[i]}" aria-label="${i+1}단계 배분 비중"><span class="u">%</span></label></td>
+    <td data-c="amt"></td><td data-c="qty"></td><td class="c" data-c="st"></td></tr>`).join("");
+  syncDipSeg();
+}
+function syncDipSeg(){
+  const cur=S.dip.w.join(",");
+  document.querySelectorAll("[data-dipw] button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.w===cur));
+}
+dipRows.addEventListener("input",e=>{
+  const t=e.target; if(!t.dataset.dk) return;
+  S.dip[t.dataset.dk][+t.dataset.i]=Math.max(0,+t.value||0); save(); syncDipSeg(); renderDip();
+});
+document.querySelectorAll("[data-dipw] button").forEach(b=>b.addEventListener("click",()=>{
+  S.dip.w=b.dataset.w.split(",").map(Number); save(); buildDip(); renderDip();
+}));
+document.getElementById("dipReset").addEventListener("click",()=>{
+  S.dip=JSON.parse(JSON.stringify(DIP_DEFAULT)); save(); buildDip(); renderDip();
+});
+function renderDip(){
+  const cash=+S.cash||0, qpx=SNAP.QQQM, ratio=qpx/DD.cur;
+  const lv=S.dip.lv.map(v=>+v||0), w=S.dip.w.map(v=>+v||0), wsum=w.reduce((a,b)=>a+b,0);
+  document.getElementById("ddPct").textContent="−"+(DD.dd*100).toFixed(1)+"%";
+  document.getElementById("ddSub").innerHTML=`고점 ${nf2(DD.hi)} (${DD.hiDate}) → 현재 ${nf2(DD.cur)} (${DD.date})<br>고점 회복까지 ${signPct(DD.hi/DD.cur-1)}`;
+  document.getElementById("dipAsOf").textContent=`${DD.date} 종가 기준, 고점은 ${DD.hiDate} 종가`;
+  const trs=[...dipRows.querySelectorAll("tr")];
+  let tAmt=0,tQty=0,nowAmt=0,nowN=0,wDd=0,next=null;
+  lv.forEach((d,i)=>{
+    const idx=DD.hi*(1-d/100), px=idx*ratio, amt=cash*w[i]/100, qty=px>0?amt/px:0;
+    const hit=DD.dd*100>=d-1e-9, tr=trs[i];
+    tAmt+=amt; tQty+=qty; wDd+=d*w[i];
+    if(hit){ nowAmt+=amt; nowN++; } else if(!next || d<next.d) next={d,idx,px,amt,i};
+    tr.classList.toggle("hit",hit);
+    tr.querySelector('[data-c="idx"]').textContent=nf0(idx);
+    tr.querySelector('[data-c="px"]').textContent="$"+nf2(px);
+    tr.querySelector('[data-c="amt"]').textContent=money(amt);
+    tr.querySelector('[data-c="qty"]').textContent=qty.toFixed(2)+"주";
+    tr.querySelector('[data-c="st"]').innerHTML = hit ? `<span class="tag on">도달</span>` :
+      `<span class="tag">${((1-idx/DD.cur)*100).toFixed(1)}% 더 하락 시</span>`;
+  });
+  const avgD=wsum?wDd/wsum:0, avgIdx=DD.hi*(1-avgD/100);
+  document.getElementById("dipAvgDd").textContent=wsum?"−"+avgD.toFixed(1)+"%":"—";
+  document.getElementById("dipAvgIdx").textContent=wsum?nf0(avgIdx):"—";
+  document.getElementById("dipAvgPx").textContent=wsum?"$"+nf2(avgIdx*ratio):"—";
+  document.getElementById("dipWsum").textContent=wsum+"%";
+  document.getElementById("dipAmt").textContent=money(tAmt);
+  document.getElementById("dipQty").textContent=tQty.toFixed(2)+"주";
+  const warn=document.getElementById("dipWarn");
+  warn.hidden = wsum===100;
+  if(wsum!==100) warn.textContent = wsum>100 ? `배분 비중 합이 ${wsum}%라서 보유 현금보다 ${money(cash*(wsum-100)/100)} 더 필요합니다.` : `배분 비중 합이 ${wsum}%라서 현금 ${money(cash*(100-wsum)/100)}은 계획 밖에 남습니다.`;
+  document.getElementById("dipNowAmt").textContent=money(nowAmt);
+  document.getElementById("dipNowSub").textContent=cash?`보유 현금 ${money(cash)}의 ${pct(nowAmt/cash,0)} · ${nowN}개 단계, 약 ${(nowAmt/qpx).toFixed(2)}주 (현재가 $${nf2(qpx)})`:"현금 보유를 입력하세요";
+  const left=Math.max(0,tAmt-nowAmt);
+  document.getElementById("dipLeftAmt").textContent=money(left);
+  document.getElementById("dipLeftSub").textContent=cash?`보유 현금의 ${pct(left/cash,0)} · ${5-nowN}개 단계 대기`:"";
+  document.getElementById("dipNext").textContent = next ? `−${next.d}% · ${nf0(next.idx)}` : "모든 단계 도달";
+  document.getElementById("dipNextSub").textContent = next ? `현재보다 ${((1-next.idx/DD.cur)*100).toFixed(1)}% 더 하락 시 · QQQM 약 $${nf2(next.px)}에서 ${money(next.amt)}` : "남은 매수 단계가 없습니다";
+  drawRuler(lv,w);
+}
+let _rz; window.addEventListener("resize",()=>{ clearTimeout(_rz); _rz=setTimeout(()=>{ if(window.__ready) renderDip(); },150); });
+function drawRuler(lv,w){
+  const el=document.getElementById("ddRuler"), W=Math.max(300, Math.min(760, el.clientWidth||640)), H=86, L=14, R=W-14, y=40;
+  const maxD=Math.max(35, Math.ceil((Math.max(...lv, DD.dd*100)+5)/5)*5);
+  const x=d=>L+(R-L)*d/maxD, navy=css("--navy"), ink=css("--ink"), mut=css("--muted"), hair=css("--hair"), dn=css("--down"), bl=css("--blue-l");
+  const wmax=Math.max(1,...w);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="고점 대비 현재 하락 위치와 매수 단계">`;
+  s+=`<rect x="${L}" y="${y-3}" width="${R-L}" height="6" fill="${hair}"/>`;
+  s+=`<rect x="${L}" y="${y-3}" width="${x(DD.dd*100)-L}" height="6" fill="${bl}"/>`;
+  const step=W<480?10:5;
+  for(let t=0;t<=maxD;t+=step) s+=`<line x1="${x(t)}" x2="${x(t)}" y1="${y+6}" y2="${y+10}" stroke="${mut}" stroke-width="1"/><text x="${x(t)}" y="${y+24}" font-size="11" fill="${mut}" text-anchor="middle">${t?"−"+t+"%":"고점"}</text>`;
+  lv.forEach((d,i)=>{ const hit=DD.dd*100>=d-1e-9, r=4+6*Math.sqrt(w[i]/wmax);
+    s+=`<circle cx="${x(d)}" cy="${y}" r="${r}" fill="${hit?navy:"var(--paper)"}" stroke="${navy}" stroke-width="1.5"/>`;
+    s+=`<text x="${x(d)}" y="${y-r-5}" font-size="11" fill="${navy}" text-anchor="middle" font-weight="700">${w[i]}%</text>`; });
+  const cx=x(DD.dd*100);
+  s+=`<line x1="${cx}" x2="${cx}" y1="${y-11}" y2="${y+8}" stroke="${dn}" stroke-width="2"/>`;
+  s+=`<text x="${cx}" y="${y+40}" font-size="11.5" fill="${dn}" text-anchor="middle" font-weight="700">현재 −${(DD.dd*100).toFixed(1)}%</text>`;
+  el.innerHTML=s+`</svg>`;
+}
+
 function renderPer(){
   const k=(t,v,sub)=>`<div><span>${t}</span><b>${v}</b><small>${sub}</small></div>`;
   document.getElementById("perKpis").innerHTML =
@@ -749,7 +892,7 @@ document.getElementById("ndxSpan").textContent = NDX[0][0]+" ~ "+NDX[NDX.length-
 document.getElementById("schdSpan").textContent = SCHD[0][0]+" ~ "+SCHD[SCHD.length-1][0];
 document.getElementById("yRange").textContent = D.yhistRange||"";
 document.getElementById("todayEn").textContent=TODAY.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
-syncCur(); syncSeg(); buildRows(); setFxStatus(); renderProfile(); calc(); renderPer(); renderYK(); renderDivs(); renderCharts(); window.__ready=true;
+syncCur(); syncSeg(); buildRows(); setFxStatus(); renderProfile(); calc(); renderPer(); renderYK(); renderDivs(); renderCharts(); buildDip(); renderDip(); window.__ready=true;
 fetchFx(); setInterval(fetchFx, 60*60*1000);
 let rt; window.addEventListener("resize",()=>{clearTimeout(rt); rt=setTimeout(()=>{renderDiv(); renderCharts();},150);});
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", ()=>{renderDiv(); renderCharts();});
