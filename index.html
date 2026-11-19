@@ -409,6 +409,31 @@ p.small{font-size:12.5px;color:var(--muted);margin:8px 0 0;max-width:80ch}
       <p class="small">연말 배당률 = 그해 배당 합계 ÷ 연말 종가. 최대는 연중 최저가, 최소는 연중 최고가 기준 추정(<span id="yRange"></span>).</p>
     </figure>
   </div>
+
+  <div class="dip" aria-labelledby="tSdip">
+    <h3 id="tSdip">배당률 기준 분할 매수 계획 <span class="seg" role="group" aria-label="SCHD 비중 프리셋" data-sdipw><button type="button" data-w="10,15,20,25,30">가중</button><button type="button" data-w="5,10,20,30,35">강한 가중</button><button type="button" data-w="20,20,20,20,20">균등</button></span></h3>
+    <div class="dd-head">
+      <div>
+        <div class="dd-num" style="color:var(--navy)"><b id="syPct"></b><span>최근 4분기 배당률</span></div>
+        <div class="dd-sub" id="sySub"></div>
+      </div>
+      <div class="dd-ruler" id="syRuler"></div>
+    </div>
+    <div class="ctrl"><span>입력 칸에서 기준 배당률과 배분 비중을 바꿀 수 있습니다. 기준 현금은 위 <b>현금 보유</b> 값입니다.</span><button class="linkbtn" type="button" id="sdipReset">기본값으로</button></div>
+    <div class="tw"><table class="rt" aria-label="배당률 단계별 SCHD 현금 분할 매수">
+      <thead><tr><th class="c">단계</th><th>기준<small>배당률</small></th><th>SCHD<small>목표 가격</small></th><th>현재가 대비<small>필요 하락</small></th><th>배분 비중<small>현금 대비</small></th><th>투입 금액</th><th>매수 수량<small>SCHD</small></th><th class="c">상태</th></tr></thead>
+      <tbody id="sdipRows"></tbody>
+      <tfoot><tr><td class="c">합계</td><td id="sdipAvgY"></td><td id="sdipAvgPx"></td><td id="sdipAvgDd"></td><td id="sdipWsum"></td><td id="sdipAmt"></td><td id="sdipQty"></td><td></td></tr></tfoot>
+    </table></div>
+    <div class="warnline" id="sdipWarn" hidden></div>
+    <div class="now">
+      <div><span>지금 집행 대상 (도달한 단계)</span><b id="sdipNowAmt"></b><small id="sdipNowSub"></small></div>
+      <div><span>남은 대기 현금</span><b id="sdipLeftAmt"></b><small id="sdipLeftSub"></small></div>
+      <div><span>다음 매수 지점</span><b id="sdipNext"></b><small id="sdipNextSub"></small></div>
+    </div>
+    <p class="small">목표 가격 = 최근 4분기 주당 배당 합계 ÷ 기준 배당률입니다. 배당이 늘면 같은 배당률의 목표 가격도 함께 올라갑니다. 합계 줄의 배당률은 투입 금액 전체를 평균 매수가로 샀을 때의 배당률(매수가 기준 배당률)입니다. 나스닥 계획과 같은 현금 보유 값을 기준으로 하므로, 두 계획을 함께 쓰려면 배분 비중을 나눠 잡으세요.</p>
+    <div class="src">Source: Yahoo Finance(SCHD) 종가·배당, <span id="sdipAsOf"></span></div>
+  </div>
 </section>
 
 <footer>
@@ -438,6 +463,7 @@ const NEXT = D.next;
 
 /* ---------- state ---------- */
 const DIP_DEFAULT = { lv:[10,15,20,25,30], w:[10,15,20,25,30] };
+const SDIP_DEFAULT = { lv:[3.5,3.875,4.25,4.625,5], w:[10,15,20,25,30] };
 const DEFAULT = { cur:"KRW", extra:0, cash:1200, fxManual:null, divOverride:{}, dip:JSON.parse(JSON.stringify(DIP_DEFAULT)),
   rows:[ {name:"Invesco 나스닥100 ETF", tk:"QQQM", avg:240.00, qty:40, target:30},
          {name:"Schwab 미국배당 ETF", tk:"SCHD", avg:27.80, qty:600, target:70} ] };
@@ -445,6 +471,7 @@ let S; try{ S = JSON.parse(localStorage.getItem("rebal-qqqm-v1")) || null; }catc
 if(!S || !S.rows) S = JSON.parse(JSON.stringify(DEFAULT));
 S.divOverride = S.divOverride || {};
 if(!S.dip || !Array.isArray(S.dip.lv) || S.dip.lv.length!==5) S.dip = JSON.parse(JSON.stringify(DIP_DEFAULT));
+if(!S.sdip || !Array.isArray(S.sdip.lv) || S.sdip.lv.length!==5) S.sdip = JSON.parse(JSON.stringify(SDIP_DEFAULT));
 S.rows.forEach(r=>{ r.px = SNAP[r.tk]; });
 let FX = { rate: S.fxManual ?? SNAP.fx, mode: S.fxManual!=null ? "manual" : "snapshot", at:null, src:"" };
 function save(){ try{ const c=JSON.parse(JSON.stringify(S)); c.rows.forEach(r=>delete r.px); localStorage.setItem("rebal-qqqm-v1", JSON.stringify(c)); }catch(e){} }
@@ -520,7 +547,7 @@ function calc(){
   document.getElementById("slider").value=tq; document.getElementById("capQ").textContent=tq+"%"; document.getElementById("capS").textContent=tsd+"%";
   LAST={vals,total,adjs,cost};
   renderDiv();
-  if(window.__ready) renderDip();
+  if(window.__ready){ renderSdip(); renderDip(); }
 }
 tbody.addEventListener("input",e=>{ const t=e.target; if(!t.dataset.k) return; S.rows[+t.dataset.i][t.dataset.k]=t.value; save(); calc(); });
 document.getElementById("slider").addEventListener("input",e=>{
@@ -857,6 +884,90 @@ function renderDip(){
   drawRuler(lv,w);
   renderSignals({lv,w,nowAmt,nowN,next,cash,qpx,GT});
 }
+
+/* ---------- SCHD yield-based buy plan ---------- */
+let SDIP_STATE=null;
+const fmtY = v => (+v).toFixed(3).replace(/0+$/,"").replace(/\.$/,"");
+const sdipRows=document.getElementById("sdipRows");
+function buildSdip(){
+  sdipRows.innerHTML = S.sdip.lv.map((v,i)=>`<tr>
+    <td class="c k">${i+1}</td>
+    <td><label class="fld w-sm pct"><input data-sk="lv" data-i="${i}" type="number" step="0.05" min="0.5" max="20" inputmode="decimal" value="${v}" aria-label="${i+1}단계 기준 배당률"><span class="u">%</span></label></td>
+    <td data-c="px"></td><td data-c="dd"></td>
+    <td><label class="fld w-sm pct"><input data-sk="w" data-i="${i}" type="number" step="5" min="0" inputmode="decimal" value="${S.sdip.w[i]}" aria-label="${i+1}단계 배분 비중"><span class="u">%</span></label></td>
+    <td data-c="amt"></td><td data-c="qty"></td><td class="c" data-c="st"></td></tr>`).join("");
+  const cur=S.sdip.w.join(",");
+  document.querySelectorAll("[data-sdipw] button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.w===cur));
+}
+sdipRows.addEventListener("input",e=>{
+  const t=e.target; if(!t.dataset.sk) return;
+  S.sdip[t.dataset.sk][+t.dataset.i]=Math.max(0,+t.value||0); save();
+  const cur=S.sdip.w.join(","); document.querySelectorAll("[data-sdipw] button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.w===cur));
+  renderSdip(); renderDip();
+});
+document.querySelectorAll("[data-sdipw] button").forEach(b=>b.addEventListener("click",()=>{
+  S.sdip.w=b.dataset.w.split(",").map(Number); save(); buildSdip(); renderSdip(); renderDip();
+}));
+document.getElementById("sdipReset").addEventListener("click",()=>{
+  S.sdip=JSON.parse(JSON.stringify(SDIP_DEFAULT)); save(); buildSdip(); renderSdip(); renderDip();
+});
+function renderSdip(){
+  const cash=+S.cash||0, px0=SNAP.SCHD, d4=ttm("SCHD"), y0=d4/px0*100;
+  const lv=S.sdip.lv.map(v=>+v||0), w=S.sdip.w.map(v=>+v||0), wsum=w.reduce((a,b)=>a+b,0);
+  document.getElementById("syPct").textContent=y0.toFixed(2)+"%";
+  document.getElementById("sySub").innerHTML=`현재가 $${nf2(px0)} · 최근 4분기 배당 $${d4.toFixed(4)}<br>첫 매수(${fmtY(Math.min(...lv))}%)까지 ${y0>=Math.min(...lv)?"도달":((1-d4/(Math.min(...lv)/100)/px0)*100).toFixed(1)+"% 하락 필요"}`;
+  document.getElementById("sdipAsOf").textContent=`${DIV.SCHD[0][0]} 배당락까지 최근 4분기 배당 합계 기준`;
+  const trs=[...sdipRows.querySelectorAll("tr")];
+  let tAmt=0,tQty=0,nowAmt=0,nowN=0,next=null;
+  lv.forEach((y,i)=>{
+    const px=y>0?d4/(y/100):0, amt=cash*w[i]/100, qty=px>0?amt/px:0, hit=y0>=y-1e-9, drop=px0?1-px/px0:0, tr=trs[i];
+    tAmt+=amt; tQty+=qty;
+    if(hit){ nowAmt+=amt; nowN++; } else if(!next || y<next.y) next={y,px,amt,drop};
+    tr.classList.toggle("hit",hit);
+    tr.querySelector('[data-c="px"]').textContent="$"+nf2(px);
+    tr.querySelector('[data-c="dd"]').textContent= drop>0 ? "−"+(drop*100).toFixed(1)+"%" : "현재가 이하";
+    tr.querySelector('[data-c="amt"]').textContent=money(amt);
+    tr.querySelector('[data-c="qty"]').textContent=qty.toFixed(2)+"주";
+    tr.querySelector('[data-c="st"]').innerHTML = hit ? `<span class="tag on">도달</span>` : `<span class="tag">${(drop*100).toFixed(1)}% 더 하락 시</span>`;
+  });
+  const avgPx=tQty?tAmt/tQty:0, avgY=avgPx?d4/avgPx*100:0;
+  document.getElementById("sdipAvgY").textContent=avgPx?avgY.toFixed(2)+"%":"—";
+  document.getElementById("sdipAvgPx").textContent=avgPx?"$"+nf2(avgPx):"—";
+  document.getElementById("sdipAvgDd").textContent=avgPx?"−"+((1-avgPx/px0)*100).toFixed(1)+"%":"—";
+  document.getElementById("sdipWsum").textContent=wsum+"%";
+  document.getElementById("sdipAmt").textContent=money(tAmt);
+  document.getElementById("sdipQty").textContent=tQty.toFixed(2)+"주";
+  const warn=document.getElementById("sdipWarn");
+  warn.hidden = wsum===100;
+  if(wsum!==100) warn.textContent = wsum>100 ? `배분 비중 합이 ${wsum}%라서 보유 현금보다 ${money(cash*(wsum-100)/100)} 더 필요합니다.` : `배분 비중 합이 ${wsum}%라서 현금 ${money(cash*(100-wsum)/100)}은 계획 밖에 남습니다.`;
+  document.getElementById("sdipNowAmt").textContent=money(nowAmt);
+  document.getElementById("sdipNowSub").textContent=cash?`보유 현금 ${money(cash)}의 ${pct(nowAmt/cash,0)} · ${nowN}개 단계, SCHD 약 ${(nowAmt/px0).toFixed(2)}주 (현재가 $${nf2(px0)})`:"현금 보유를 입력하세요";
+  const left=Math.max(0,tAmt-nowAmt);
+  document.getElementById("sdipLeftAmt").textContent=money(left);
+  document.getElementById("sdipLeftSub").textContent=cash?`보유 현금의 ${pct(left/cash,0)} · ${5-nowN}개 단계 대기`:"";
+  document.getElementById("sdipNext").textContent = next ? `배당률 ${fmtY(next.y)}% · $${nf2(next.px)}` : "모든 단계 도달";
+  document.getElementById("sdipNextSub").textContent = next ? `현재보다 ${(next.drop*100).toFixed(1)}% 더 하락 시 · ${money(next.amt)} 투입` : "남은 매수 단계가 없습니다";
+  SDIP_STATE={nowAmt,nowN,next};
+  drawYRuler(lv,w,y0);
+}
+function drawYRuler(lv,w,y0){
+  const el=document.getElementById("syRuler"), W=Math.max(300, Math.min(760, el.clientWidth||640)), H=86, L=14, R=W-14, y=40;
+  const lo=Math.min(3, Math.floor(Math.min(y0,...lv)*2)/2), hi=Math.max(5.5, Math.ceil((Math.max(y0,...lv)+.25)*2)/2);
+  const x=v=>L+(R-L)*(v-lo)/(hi-lo), navy=css("--navy"), mut=css("--muted"), hair=css("--hair"), bl=css("--blue-l");
+  const wmax=Math.max(1,...w), stepT=W<480?1:.5;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="현재 배당률과 매수 단계 위치">`;
+  s+=`<rect x="${L}" y="${y-3}" width="${R-L}" height="6" fill="${hair}"/>`;
+  s+=`<rect x="${L}" y="${y-3}" width="${Math.max(0,x(Math.min(y0,hi))-L)}" height="6" fill="${bl}"/>`;
+  for(let t=Math.ceil(lo/stepT)*stepT;t<=hi+1e-9;t+=stepT) s+=`<line x1="${x(t)}" x2="${x(t)}" y1="${y+6}" y2="${y+10}" stroke="${mut}" stroke-width="1"/><text x="${x(t)}" y="${y+24}" font-size="11" fill="${mut}" text-anchor="middle">${t.toFixed(1)}%</text>`;
+  lv.forEach((v,i)=>{ const hit=y0>=v-1e-9, r=4+6*Math.sqrt(w[i]/wmax);
+    s+=`<circle cx="${x(v)}" cy="${y}" r="${r}" fill="${hit?navy:"var(--paper)"}" stroke="${navy}" stroke-width="1.5"/>`;
+    s+=`<text x="${x(v)}" y="${y-r-5}" font-size="11" fill="${navy}" text-anchor="middle" font-weight="700">${w[i]}%</text>`; });
+  const cx=x(Math.min(y0,hi));
+  s+=`<line x1="${cx}" x2="${cx}" y1="${y-11}" y2="${y+8}" stroke="${navy}" stroke-width="2"/>`;
+  s+=`<text x="${cx}" y="${y+40}" font-size="11.5" fill="${navy}" text-anchor="middle" font-weight="700">현재 ${y0.toFixed(2)}%</text>`;
+  el.innerHTML=s+`</svg>`;
+}
+
 const SIG_SCHD = { buy:3.5, strong:4.0 };
 function renderSignals(st){
   document.querySelectorAll(".gtk").forEach(e=>e.textContent=st.GT);
@@ -887,9 +998,11 @@ function renderSignals(st){
     : `배당률 <b>${y.toFixed(2)}%</b>로 강력 매수 기준 4%를 넘었습니다.`;
   const lo=2.5, hi=4.5, segs=8;
   document.getElementById("sigSSteps").innerHTML=Array.from({length:segs},(_,i)=>{ const v=lo+(hi-lo)*(i+.5)/segs; return `<i class="${y>=v? (v>=SIG_SCHD.strong?"y40":v>=SIG_SCHD.buy?"y35":"on"):""}" title="${v.toFixed(2)}%"></i>`; }).join("");
-  document.getElementById("sigSMeta").textContent=`현재가 $${nf2(SNAP.SCHD)} · 최근 4분기 배당 $${d4.toFixed(4)} · 매수 $${nf2(pBuy)} 이하, 강력 매수 $${nf2(pStrong)} 이하 (막대: 배당률 2.5~4.5%)`;
+  const sp=SDIP_STATE;
+  document.getElementById("sigSMeta").textContent = (sp && sp.nowN ? `배당률 계획 ${sp.nowN}/5단계 도달 · 누적 ${money(sp.nowAmt)} · ` : "")
+    + (sp && sp.next ? `다음: 배당률 ${fmtY(sp.next.y)}% ($${nf2(sp.next.px)})에서 ${money(sp.next.amt)}` : `매수 $${nf2(pBuy)} 이하, 강력 매수 $${nf2(pStrong)} 이하`);
 }
-let _rz; window.addEventListener("resize",()=>{ clearTimeout(_rz); _rz=setTimeout(()=>{ if(window.__ready) renderDip(); },150); });
+let _rz; window.addEventListener("resize",()=>{ clearTimeout(_rz); _rz=setTimeout(()=>{ if(window.__ready){ renderSdip(); renderDip(); } },150); });
 function drawRuler(lv,w){
   const el=document.getElementById("ddRuler"), W=Math.max(300, Math.min(760, el.clientWidth||640)), H=86, L=14, R=W-14, y=40;
   const maxD=Math.max(35, Math.ceil((Math.max(...lv, DD.dd*100)+5)/5)*5);
@@ -959,7 +1072,7 @@ document.getElementById("ndxSpan").textContent = NDX[0][0]+" ~ "+NDX[NDX.length-
 document.getElementById("schdSpan").textContent = SCHD[0][0]+" ~ "+SCHD[SCHD.length-1][0];
 document.getElementById("yRange").textContent = D.yhistRange||"";
 document.getElementById("todayEn").textContent=TODAY.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
-syncCur(); syncSeg(); buildRows(); setFxStatus(); renderProfile(); calc(); renderPer(); renderYK(); renderDivs(); renderCharts(); buildDip(); renderDip(); window.__ready=true;
+syncCur(); syncSeg(); buildRows(); setFxStatus(); renderProfile(); calc(); renderPer(); renderYK(); renderDivs(); renderCharts(); buildDip(); buildSdip(); renderSdip(); renderDip(); window.__ready=true;
 fetchFx(); setInterval(fetchFx, 60*60*1000);
 let rt; window.addEventListener("resize",()=>{clearTimeout(rt); rt=setTimeout(()=>{renderDiv(); renderCharts();},150);});
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", ()=>{renderDiv(); renderCharts();});
