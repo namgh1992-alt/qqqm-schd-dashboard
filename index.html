@@ -163,6 +163,23 @@ footer p{margin:0 0 6px;max-width:110ch}
 p.small{font-size:12.5px;color:var(--muted);margin:8px 0 0;max-width:80ch}
 /* drawdown buy plan */
 .dip{margin-top:30px}
+/* buy signals */
+.sig{display:grid;grid-template-columns:1fr 1fr;border-bottom:1.5px solid var(--ink)}
+@media (max-width:760px){.sig{grid-template-columns:1fr}}
+.sig > div{padding:14px 18px 16px;display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:start}
+.sig > div + div{border-left:1px solid var(--hair)}
+@media (max-width:760px){.sig > div + div{border-left:0;border-top:1px solid var(--hair)}}
+.sig .cap{grid-column:1/-1;margin:0}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:92px;padding:7px 12px;border-radius:3px;font-size:16px;font-weight:700;letter-spacing:-.01em;border:1.5px solid var(--rule);color:var(--muted);background:var(--paper)}
+.badge.buy{background:var(--navy);border-color:var(--navy);color:#fff}
+.badge.strong{background:var(--up);border-color:var(--up);color:#fff}
+.sig .why{font-size:13.5px;line-height:1.5}
+.sig .why b{font-weight:700;color:var(--navy)}
+.sig .meta2{grid-column:1/-1;font-size:12px;color:var(--muted);margin-top:4px}
+.sig .steps{grid-column:1/-1;display:flex;gap:4px;margin-top:8px}
+.sig .steps i{flex:1;height:6px;background:var(--hair);border-radius:1px}
+.sig .steps i.on{background:var(--navy)}
+.sig .steps i.y35{background:var(--navy)} .sig .steps i.y40{background:var(--up)}
 .dip h3{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;font-size:15px;font-weight:500;margin:0;padding-bottom:6px;border-bottom:1px solid var(--rule)}
 .dd-head{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,2fr);gap:28px;align-items:center;margin:14px 0 6px}
 @media (max-width:760px){.dd-head{grid-template-columns:1fr;gap:10px}}
@@ -229,6 +246,22 @@ p.small{font-size:12.5px;color:var(--muted);margin:8px 0 0;max-width:80ch}
   </div>
 </div>
 <div class="profile" id="profile"></div>
+<div class="sig" aria-label="매수 신호">
+  <div>
+    <div class="cap"><span>Nasdaq 100 매수 신호 · <span class="gtk"></span></span><span>고점 대비 −<span id="sigNLv"></span>%부터 분할 매수</span></div>
+    <span class="badge" id="sigNBadge"></span>
+    <div class="why" id="sigNWhy"></div>
+    <div class="steps" id="sigNSteps"></div>
+    <div class="meta2" id="sigNMeta"></div>
+  </div>
+  <div>
+    <div class="cap"><span>SCHD 매수 신호</span><span>배당률 3.5% 매수 · 4% 강력 매수</span></div>
+    <span class="badge" id="sigSBadge"></span>
+    <div class="why" id="sigSWhy"></div>
+    <div class="steps" id="sigSSteps"></div>
+    <div class="meta2" id="sigSMeta"></div>
+  </div>
+</div>
 
 <!-- Rebalancing -->
 <section class="sec" aria-labelledby="t1">
@@ -330,7 +363,7 @@ p.small{font-size:12.5px;color:var(--muted);margin:8px 0 0;max-width:80ch}
     </div>
     <div class="ctrl"><span>입력 칸에서 하락률과 배분 비중을 바꿀 수 있습니다. 기준 현금은 위 <b>현금 보유</b> 값입니다.</span><button class="linkbtn" type="button" id="dipReset">기본값으로</button></div>
     <div class="tw"><table class="rt" aria-label="하락 단계별 현금 분할 매수">
-      <thead><tr><th class="c">단계</th><th>고점 대비<small>하락률</small></th><th>Nasdaq 100<small>목표 지수</small></th><th>QQQM<small>환산 가격</small></th><th>배분 비중<small>현금 대비</small></th><th>투입 금액</th><th>매수 수량<small>QQQM</small></th><th class="c">상태</th></tr></thead>
+      <thead><tr><th class="c">단계</th><th>고점 대비<small>하락률</small></th><th>Nasdaq 100<small>목표 지수</small></th><th><span class="gtk"></span><small>환산 가격</small></th><th>배분 비중<small>현금 대비</small></th><th>투입 금액</th><th>매수 수량<small class="gtk"></small></th><th class="c">상태</th></tr></thead>
       <tbody id="dipRows"></tbody>
       <tfoot><tr><td class="c">합계</td><td id="dipAvgDd"></td><td id="dipAvgIdx"></td><td id="dipAvgPx"></td><td id="dipWsum"></td><td id="dipAmt"></td><td id="dipQty"></td><td></td></tr></tfoot>
     </table></div>
@@ -340,8 +373,8 @@ p.small{font-size:12.5px;color:var(--muted);margin:8px 0 0;max-width:80ch}
       <div><span>남은 대기 현금</span><b id="dipLeftAmt"></b><small id="dipLeftSub"></small></div>
       <div><span>다음 매수 지점</span><b id="dipNext"></b><small id="dipNextSub"></small></div>
     </div>
-    <p class="small">하락률은 최근 1년 일봉 종가 중 최고치를 고점으로 잡아 계산합니다. QQQM 환산 가격은 현재 QQQM과 지수의 비율을 그대로 적용한 근사값이고, 매수 수량은 소수점 거래 기준이며, 정수 주로 사려면 내림해서 보세요. 합계 줄의 하락률·지수·가격은 배분 비중으로 가중평균한 평균 매수 지점입니다.</p>
-    <div class="src">Source: Yahoo Finance(^NDX, QQQM) 일봉 종가, <span id="dipAsOf"></span></div>
+    <p class="small">하락률은 최근 1년 일봉 종가 중 최고치를 고점으로 잡아 계산합니다. 성장 ETF 환산 가격은 현재 ETF 가격과 지수의 비율을 그대로 적용한 근사값이고, 매수 수량은 소수점 거래 기준이며, 정수 주로 사려면 내림해서 보세요. 합계 줄의 하락률·지수·가격은 배분 비중으로 가중평균한 평균 매수 지점입니다.</p>
+    <div class="src">Source: Yahoo Finance(^NDX, <span class="gtk"></span>) 일봉 종가, <span id="dipAsOf"></span></div>
   </div>
 </section>
 
@@ -783,7 +816,7 @@ document.getElementById("dipReset").addEventListener("click",()=>{
   S.dip=JSON.parse(JSON.stringify(DIP_DEFAULT)); save(); buildDip(); renderDip();
 });
 function renderDip(){
-  const cash=+S.cash||0, qpx=SNAP.QQQM, ratio=qpx/DD.cur;
+  const GT=S.rows[0].tk, cash=+S.cash||0, qpx=SNAP[GT], ratio=qpx/DD.cur;
   const lv=S.dip.lv.map(v=>+v||0), w=S.dip.w.map(v=>+v||0), wsum=w.reduce((a,b)=>a+b,0);
   document.getElementById("ddPct").textContent="−"+(DD.dd*100).toFixed(1)+"%";
   document.getElementById("ddSub").innerHTML=`고점 ${nf2(DD.hi)} (${DD.hiDate}) → 현재 ${nf2(DD.cur)} (${DD.date})<br>고점 회복까지 ${signPct(DD.hi/DD.cur-1)}`;
@@ -814,13 +847,46 @@ function renderDip(){
   warn.hidden = wsum===100;
   if(wsum!==100) warn.textContent = wsum>100 ? `배분 비중 합이 ${wsum}%라서 보유 현금보다 ${money(cash*(wsum-100)/100)} 더 필요합니다.` : `배분 비중 합이 ${wsum}%라서 현금 ${money(cash*(100-wsum)/100)}은 계획 밖에 남습니다.`;
   document.getElementById("dipNowAmt").textContent=money(nowAmt);
-  document.getElementById("dipNowSub").textContent=cash?`보유 현금 ${money(cash)}의 ${pct(nowAmt/cash,0)} · ${nowN}개 단계, 약 ${(nowAmt/qpx).toFixed(2)}주 (현재가 $${nf2(qpx)})`:"현금 보유를 입력하세요";
+  document.getElementById("dipNowSub").textContent=cash?`보유 현금 ${money(cash)}의 ${pct(nowAmt/cash,0)} · ${nowN}개 단계, ${GT} 약 ${(nowAmt/qpx).toFixed(2)}주 (현재가 $${nf2(qpx)})`:"현금 보유를 입력하세요";
   const left=Math.max(0,tAmt-nowAmt);
   document.getElementById("dipLeftAmt").textContent=money(left);
   document.getElementById("dipLeftSub").textContent=cash?`보유 현금의 ${pct(left/cash,0)} · ${5-nowN}개 단계 대기`:"";
   document.getElementById("dipNext").textContent = next ? `−${next.d}% · ${nf0(next.idx)}` : "모든 단계 도달";
-  document.getElementById("dipNextSub").textContent = next ? `현재보다 ${((1-next.idx/DD.cur)*100).toFixed(1)}% 더 하락 시 · QQQM 약 $${nf2(next.px)}에서 ${money(next.amt)}` : "남은 매수 단계가 없습니다";
+  document.getElementById("dipNextSub").textContent = next ? `현재보다 ${((1-next.idx/DD.cur)*100).toFixed(1)}% 더 하락 시 · ${GT} 약 $${nf2(next.px)}에서 ${money(next.amt)}` : "남은 매수 단계가 없습니다";
   drawRuler(lv,w);
+  renderSignals({lv,w,nowAmt,nowN,next,cash,qpx,GT});
+}
+const SIG_SCHD = { buy:3.5, strong:4.0 };
+function renderSignals(st){
+  document.querySelectorAll(".gtk").forEach(e=>e.textContent=st.GT);
+  /* Nasdaq: plan levels */
+  const sorted=[...st.lv].sort((a,b)=>a-b), first=sorted[0], dd=DD.dd*100;
+  document.getElementById("sigNLv").textContent=first;
+  const nb=document.getElementById("sigNBadge"), nw=document.getElementById("sigNWhy");
+  if(st.nowN===0){
+    nb.className="badge"; nb.textContent="관망";
+    const idx=DD.hi*(1-first/100);
+    nw.innerHTML=`고점 대비 <b>−${dd.toFixed(1)}%</b>로 첫 매수 지점(−${first}%)까지 ${((1-idx/DD.cur)*100).toFixed(1)}% 남았습니다. 현금 ${money(st.cash)}을 대기하세요.`;
+  } else {
+    const strong = st.nowN>=Math.ceil(st.lv.length/2)+1;
+    nb.className="badge "+(strong?"strong":"buy"); nb.textContent=strong?"강력 매수":"매수";
+    nw.innerHTML=`고점 대비 <b>−${dd.toFixed(1)}%</b> · ${st.nowN}/${st.lv.length}단계 도달.<br>누적 집행 <b>${money(st.nowAmt)}</b> (현금의 ${st.cash?pct(st.nowAmt/st.cash,0):"—"}, ${st.GT} 약 ${(st.nowAmt/st.qpx).toFixed(2)}주)`;
+  }
+  document.getElementById("sigNSteps").innerHTML=st.lv.map(d=>`<i class="${dd>=d-1e-9?"on":""}" title="−${d}%"></i>`).join("");
+  document.getElementById("sigNMeta").textContent = st.next ? `다음: −${st.next.d}% (지수 ${nf0(st.next.idx)}, ${st.GT} 약 $${nf2(st.next.px)})에서 ${money(st.next.amt)} 추가` : "모든 매수 단계에 도달했습니다";
+  /* SCHD: dividend yield */
+  const d4=ttm("SCHD"), y=d4/SNAP.SCHD*100, pBuy=d4/(SIG_SCHD.buy/100), pStrong=d4/(SIG_SCHD.strong/100);
+  const sb=document.getElementById("sigSBadge"), sw=document.getElementById("sigSWhy");
+  const lvl = y>=SIG_SCHD.strong ? 2 : y>=SIG_SCHD.buy ? 1 : 0;
+  sb.className="badge"+(lvl===2?" strong":lvl===1?" buy":""); sb.textContent=["관망","매수","강력 매수"][lvl];
+  sw.innerHTML = lvl===0
+    ? `배당률 <b>${y.toFixed(2)}%</b> · 매수 기준 3.5%까지 주가가 $${nf2(pBuy)}로 ${((1-pBuy/SNAP.SCHD)*100).toFixed(1)}% 더 내려와야 합니다.`
+    : lvl===1
+    ? `배당률 <b>${y.toFixed(2)}%</b>로 매수 기준 3.5%를 넘었습니다. 강력 매수(4%)는 $${nf2(pStrong)} 이하입니다.`
+    : `배당률 <b>${y.toFixed(2)}%</b>로 강력 매수 기준 4%를 넘었습니다.`;
+  const lo=2.5, hi=4.5, segs=8;
+  document.getElementById("sigSSteps").innerHTML=Array.from({length:segs},(_,i)=>{ const v=lo+(hi-lo)*(i+.5)/segs; return `<i class="${y>=v? (v>=SIG_SCHD.strong?"y40":v>=SIG_SCHD.buy?"y35":"on"):""}" title="${v.toFixed(2)}%"></i>`; }).join("");
+  document.getElementById("sigSMeta").textContent=`현재가 $${nf2(SNAP.SCHD)} · 최근 4분기 배당 $${d4.toFixed(4)} · 매수 $${nf2(pBuy)} 이하, 강력 매수 $${nf2(pStrong)} 이하 (막대: 배당률 2.5~4.5%)`;
 }
 let _rz; window.addEventListener("resize",()=>{ clearTimeout(_rz); _rz=setTimeout(()=>{ if(window.__ready) renderDip(); },150); });
 function drawRuler(lv,w){
